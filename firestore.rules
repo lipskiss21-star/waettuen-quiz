@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 하루 점수: 누구나 읽기, 본인(익명 로그인)만 한 번 쓰기, 수정·삭제 불가
+    match /days/{date}/scores/{uid} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && date.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['nick', 'score', 'correct', 'marks', 'at'])
+        && request.resource.data.nick is string
+        && request.resource.data.nick.size() >= 2 && request.resource.data.nick.size() <= 10
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0 && request.resource.data.score <= 1250
+        && request.resource.data.correct is int
+        && request.resource.data.correct >= 0 && request.resource.data.correct <= 5
+        && request.resource.data.marks is string && request.resource.data.marks.size() == 5
+        && request.resource.data.at == request.time;
+      allow update, delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
