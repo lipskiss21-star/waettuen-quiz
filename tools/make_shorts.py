@@ -150,7 +150,7 @@ def frame(t):
                 ctext(dd,1390,'15초 안에 맞히고',F(56,True),FG)
                 ctext(dd,1470,'순위표 1등 도전!',F(56,True),FG)
             dd.rounded_rectangle((120,1650,960,1780),radius=65,fill=YEL)
-            ctext(dd,1713,'채널 이름 누르고 → 퀴즈 풀기',F(54),INK)
+            ctext(dd,1713,'아래 영상 버튼 누르고 → 퀴즈 풀기',F(52),INK)
         comp(scaled(out, pop(t,T_OUT,0.45)))
     return im.convert('RGB')
 
