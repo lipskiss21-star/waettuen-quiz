@@ -75,7 +75,7 @@ function nickScreen(next) {
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
   screen(
     el('h1', {}, '이거 왜 ', el('em', {}, '떴게?')),
-    el('p', { class: 'sub' }, '매일 급상승 검색어 5문제. 순위표에 쓸 닉네임을 정해 주세요.'),
+    el('p', { class: 'sub' }, '매일 아침 오늘의 화제 5문제. 순위표에 쓸 닉네임을 정해 주세요.'),
     el('div', { class: 'panel' }, el('div', { class: 'field' }, el('label', { for: 'nick' }, '닉네임 (2~10글자)'), inp), err, el('button', { class: 'btn', onclick: save }, '시작하기')),
     el('p', { class: 'note' }, '로그인은 필요 없어요. 기록은 이 기기에 저장돼요.')
   );
@@ -89,7 +89,7 @@ async function home() {
   const kws = el('ul', { class: 'list' }, today.questions.map(q => el('li', { class: 'kw-row' }, el('span', {}, q.keyword), el('span', {}, q.volume || ''))));
   const past = S.dates.slice(1, 8);
   screen(
-    el('p', { class: 'sub' }, md(today.date) + ' 구글 급상승 검색어'),
+    el('p', { class: 'sub' }, md(today.date) + ' 오늘의 화제'),
     el('h1', {}, '이거 왜 ', el('em', {}, '떴게?')),
     eventBox(),
     el('div', { class: 'me-line' }, el('span', {}, '내 닉네임 ', el('b', {}, S.nick), ' ', el('span', { class: 'tag' }, tagOf(myId()))), el('button', { class: 'linkbtn', onclick: () => nickScreen(home) }, '바꾸기')),
@@ -99,7 +99,7 @@ async function home() {
       : el('button', { class: 'btn', onclick: () => start(today, false) }, '오늘 퀴즈 시작'),
     el('button', { class: 'btn ghost', onclick: () => board(today.date, 'week') }, '이번 주 순위 보기'),
     past.length ? el('div', { class: 'panel' }, el('h2', {}, '지난 퀴즈'), el('div', { class: 'chips' }, past.map(d => { const p = S.plays[d]; return el('button', { class: 'chip' + (p ? ' done' : ''), onclick: async () => { const qz = await getQuiz(d); p ? result(qz, p) : start(qz, true); } }, md(d) + (p ? ' · ' + p.score + '점' : '')); })), el('p', { class: 'note', style: 'text-align:left' }, '지난 퀴즈는 연습용이라 순위에 올라가지 않아요.')) : null,
-    el('p', { class: 'note' }, el('a', { href: (CFG.event && CFG.event.youtube) || '#' , target: '_blank', rel: 'noopener' }, '유튜브 쇼츠 「왜뜬겨?」'), '에서 매일 검색어 이유를 알려드려요.'),
+    el('p', { class: 'note' }, el('a', { href: (CFG.event && CFG.event.youtube) || '#' , target: '_blank', rel: 'noopener' }, '유튜브 쇼츠 「왜뜬겨?」'), '에서 매일 화제가 된 이유를 알려드려요.'),
     el('p', { class: 'note' }, el('a', { href: 'rules.html' }, '이용 안내·개인정보'))
   );
 }
@@ -114,7 +114,7 @@ function ask() {
   screen(
     el('div', { class: 'top' }, dots, el('span', { class: 'score' }, (S.practice ? '연습 · ' : '') + S.pts + '점')),
     el('div', { class: 'timer' }, bar),
-    el('div', { class: 'kwcard' }, el('span', { class: 'label' }, '급상승 검색어 ' + (S.i + 1) + '/' + quiz.questions.length), el('span', { class: 'kw' }, q.keyword), q.volume ? el('span', { class: 'vol' }, '검색 ' + q.volume) : null),
+    el('div', { class: 'kwcard' }, el('span', { class: 'label' }, '오늘의 화제 ' + (S.i + 1) + '/' + quiz.questions.length), el('span', { class: 'kw' }, q.keyword), q.volume ? el('span', { class: 'vol' }, '검색 ' + q.volume) : null),
     el('p', { class: 'q' }, q.q || '이거 왜 떴게?'),
     choices,
     el('div', { id: 'after' })
