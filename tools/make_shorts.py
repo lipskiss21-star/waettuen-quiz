@@ -62,9 +62,26 @@ def badge(d, y=170):
     d.rounded_rectangle((W/2-tw/2-48,y-56,W/2+tw/2+48,y+56),radius=56,fill=YEL)
     ctext(d,y-4,s,f,INK)
 
+def cup(d, cx, cy, s=1.0, col=INK):
+    w,h=int(120*s),int(110*s)
+    d.rounded_rectangle((cx-w//2,cy-h//2,cx+w//2,cy+h//2),radius=int(22*s),fill=col)
+    d.arc((cx+w//2-int(22*s),cy-int(30*s),cx+w//2+int(38*s),cy+int(30*s)),-90,90,fill=col,width=max(2,int(14*s)))
+    d.rounded_rectangle((cx-w//2-int(18*s),cy+h//2+int(4*s),cx+w//2+int(18*s),cy+h//2+int(18*s)),radius=max(1,int(7*s)),fill=col)
+
+def ribbon(d, y=236):
+    # 첫 화면부터 보이는 '주간 1위 커피 쿠폰' 띠 (event가 true일 때)
+    f=F(40); s='주간 1위 커피 쿠폰 선물'; tw=d.textlength(s,font=f)
+    total=88+tw; x0=W/2-total/2-40; x1=W/2+total/2+40
+    d.rounded_rectangle((x0,y-38,x1,y+38),radius=38,fill=(52,44,10),outline=YEL,width=4)
+    cup(d,int(x0+40+24),y+2,0.42,YEL)
+    d.text((x0+40+88,y-3),s,font=f,fill=YEL,anchor='lm')
+
 def frame(t):
     im=Image.new('RGBA',(W,H),BG+(255,)); d=ImageDraw.Draw(im)
-    badge(d)
+    if EVENT and t<T_OUT:
+        badge(d,118); ribbon(d)
+    else:
+        badge(d)
     def comp(layer):
         if layer is not None: im.alpha_composite(layer)
     if T_TIMER1<=t<T_REV:
