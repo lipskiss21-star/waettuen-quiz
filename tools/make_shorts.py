@@ -77,7 +77,7 @@ def frame(t):
         # keyword card
         def kw(dd):
             dd.rounded_rectangle((80,300,1000,700),radius=40,fill=PANEL)
-            ctext(dd,370,DATE+' 오늘의 화제',F(40,True),MUTED)
+            ctext(dd,370,DATE+' 구글 급상승 검색어',F(40,True),MUTED)
             ctext(dd,505,KW,F(150),YEL)
             ctext(dd,630,VOL,F(42,True),MUTED)
         comp(scaled(kw, pop(t,0.15,0.45)))
@@ -150,7 +150,7 @@ def frame(t):
                 ctext(dd,1390,'15초 안에 맞히고',F(56,True),FG)
                 ctext(dd,1470,'순위표 1등 도전!',F(56,True),FG)
             dd.rounded_rectangle((120,1650,960,1780),radius=65,fill=YEL)
-            ctext(dd,1713,'링크는 고정 댓글에',F(60),INK)
+            ctext(dd,1713,'채널 이름 누르고 → 퀴즈 풀기',F(54),INK)
         comp(scaled(out, pop(t,T_OUT,0.45)))
     return im.convert('RGB')
 
