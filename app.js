@@ -19,6 +19,7 @@ S.localId = store.get('lid', null) || (() => { const id = 'l' + Math.random().to
 
 function screen(...kids) { $app.replaceChildren(el('a', { class: 'badge', href: './' }, '왜뜬겨?'), ...kids.filter(k => k != null && k !== false)); window.scrollTo(0, 0); }
 function msg(t) { screen(el('p', { class: 'sub' }, t)); }
+const snd = (fn, ...a) => { try { const W = window.WaeSound; if (W && W[fn]) W[fn](...a); } catch (e) {} };
 const tagOf = id => '#' + String(id || '').slice(-4).toUpperCase();
 
 function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.append(s); }); }
@@ -116,7 +117,8 @@ function ask() {
     el('div', { id: 'after' })
   );
   S.t0 = performance.now();
-  const tick = () => { const left = Math.max(0, QSEC - (performance.now() - S.t0) / 1000); bar.style.transform = 'scaleX(' + (left / QSEC) + ')'; if (left <= 0) { pick(-1); return; } S.raf = requestAnimationFrame(tick); };
+  snd('start');
+  const tick = () => { const left = Math.max(0, QSEC - (performance.now() - S.t0) / 1000); snd('setUrgent', left <= 5); bar.style.transform = 'scaleX(' + (left / QSEC) + ')'; if (left <= 0) { pick(-1); return; } S.raf = requestAnimationFrame(tick); };
   S.raf = requestAnimationFrame(tick);
 }
 
@@ -130,6 +132,7 @@ async function pick(k) {
   const ok = k === right;
   if (ok) S.pts += 100 + Math.round(left * 10);
   S.marks.push(ok);
+  snd(ok ? 'correct' : 'wrong');
   document.querySelectorAll('.choice').forEach((b, j) => { b.disabled = true; if (j === right) b.classList.add('right'); else if (j === k) b.classList.add('wrong'); });
   document.querySelector('.score').textContent = (S.practice ? '연습 · ' : '') + S.pts + '점';
   const last = S.i === quiz.questions.length - 1;
