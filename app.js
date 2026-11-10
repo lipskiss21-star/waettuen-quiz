@@ -8,6 +8,8 @@ const kstToday = () => kstNow().toISOString().slice(0, 10);
 const md = d => { const [, m, dd] = d.split('-'); return (+m) + '월 ' + (+dd) + '일'; };
 const addDays = (d, n) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 const weekStart = d => { const t = new Date(d + 'T00:00:00Z'); const wd = (t.getUTCDay() + 6) % 7; return addDays(d, -wd); };
+// 누적 순위 기간: 주(월요일 시작), 월, 연
+const periodsOf = d => ({ week: 'w-' + weekStart(d), month: 'm-' + d.slice(0, 7), year: 'y-' + d.slice(0, 4) });
 const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else if (v !== undefined && v !== null && v !== false) e.setAttribute(k, v); } for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k))); return e; };
 const store = { get(k, d) { try { const v = localStorage.getItem('wae.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('wae.' + k, JSON.stringify(v)); } catch (e) {} } };
 async function sha(s) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 16); }
@@ -51,6 +53,7 @@ async function boot() {
   } catch (e) { msg('퀴즈를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 열어 주세요.'); return; }
   if (!S.dates.length) { msg('아직 등록된 퀴즈가 없어요. 매일 아침 새 문제가 올라와요.'); return; }
   await Promise.race([fbP, new Promise(r => setTimeout(r, 6000))]);
+  fbP.then(migrateTotals);
   if (!S.nick) nickScreen(home); else home();
 }
 
@@ -147,6 +150,33 @@ async function pick(k) {
   after.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
 }
 
+// 주간·월간·연간 합계에 하루 점수를 한 번만 더해요(d 맵에 날짜별 점수를 남겨 중복을 막아요).
+function addTotals(b, date, score, only) {
+  const FV = firebase.firestore.FieldValue, ps = periodsOf(date);
+  for (const pid of (only || Object.values(ps))) {
+    b.set(S.fb.collection('totals').doc(pid).collection('scores').doc(S.uid), { nick: S.nick, score: FV.increment(score), last: date, at: FV.serverTimestamp(), d: { [date]: score } }, { merge: true });
+  }
+}
+// 합계 기능이 생기기 전에 푼 기록을 이번 주·달·해 합계에 옮겨 넣어요(한 번만).
+async function migrateTotals() {
+  if (!S.fb || !S.uid) return;
+  try {
+    const cur = periodsOf(kstToday());
+    const dates = Object.keys(S.plays).filter(d => d <= kstToday() && d.slice(0, 4) === kstToday().slice(0, 4)).sort();
+    if (!dates.length) return;
+    const have = {};
+    for (const pid of Object.values(cur)) { const x = await S.fb.collection('totals').doc(pid).collection('scores').doc(S.uid).get(); have[pid] = (x.exists && x.data().d) || {}; }
+    for (const d of dates) {
+      const ps = periodsOf(d), need = Object.values(ps).filter(pid => have[pid] && !(d in have[pid]));
+      if (!need.length) continue;
+      const day = await S.fb.collection('days').doc(d).collection('scores').doc(S.uid).get();
+      if (!day.exists) continue;
+      const b = S.fb.batch(); addTotals(b, d, day.data().score, need); await b.commit();
+      for (const pid of need) have[pid][d] = day.data().score;
+    }
+  } catch (e) { console.warn('migrate', e); }
+}
+
 async function finish() {
   const quiz = S.quiz;
   const play = { score: Math.min(S.pts, MAXDAY), correct: S.marks.filter(Boolean).length, marks: S.marks.map(m => m ? 'O' : 'X').join(''), at: new Date().toISOString() };
@@ -154,7 +184,15 @@ async function finish() {
   if (!S.practice && !S.plays[quiz.date] && quiz.date === kstToday()) {
     S.plays[quiz.date] = play; store.set('plays', S.plays);
     if (S.fb && S.uid) {
-      try { await S.fb.collection('days').doc(quiz.date).collection('scores').doc(S.uid).set({ nick: S.nick, score: play.score, correct: play.correct, marks: play.marks, at: firebase.firestore.FieldValue.serverTimestamp() }); }
+      try {
+        const FV = firebase.firestore.FieldValue, b = S.fb.batch();
+        const dayRef = S.fb.collection('days').doc(quiz.date).collection('scores').doc(S.uid);
+        const dayDoc = { nick: S.nick, score: play.score, correct: play.correct, marks: play.marks, at: FV.serverTimestamp() };
+        b.set(dayRef, dayDoc);
+        addTotals(b, quiz.date, play.score);
+        // 합계 쓰기가 실패해도 하루 점수는 꼭 남기고, 합계는 다음에 열 때 다시 더해요
+        try { await b.commit(); } catch (e1) { console.warn('totals', e1); await dayRef.set(dayDoc); }
+      }
       catch (e) { note = '순위표에 저장하지 못했어요. 이미 오늘 기록이 있거나 인터넷이 끊겼을 수 있어요.'; }
     } else note = '지금은 순위표가 꺼져 있어서 기록이 이 기기에만 저장돼요.';
   } else if (S.practice) note = '연습 풀이라 순위에는 올라가지 않아요.';
@@ -185,24 +223,23 @@ async function topOfDay(d, n) {
 
 async function board(date, mode) {
   const box = el('div', { class: 'list' }, el('p', { class: 'note' }, '불러오는 중…'));
-  const tabs = el('div', { class: 'tabs', role: 'tablist' },
-    el('button', { role: 'tab', 'aria-selected': String(mode === 'day'), onclick: () => board(date, 'day') }, md(date)),
-    el('button', { role: 'tab', 'aria-selected': String(mode === 'week'), onclick: () => board(date, 'week') }, '이번 주 합계'));
-  screen(el('h1', {}, '순위표'), tabs, el('div', { class: 'panel' }, box), eventBox(), el('button', { class: 'btn ghost', onclick: home }, '처음으로'));
+  const tab = (m, label) => el('button', { role: 'tab', 'aria-selected': String(mode === m), onclick: () => board(date, m) }, label);
+  const tabs = el('div', { class: 'tabs', role: 'tablist' }, tab('day', md(date)), tab('week', '이번 주'), tab('month', '이번 달'), tab('year', '올해'));
+  const hint = { day: md(date) + ' 점수', week: '이번 주(월~일) 점수 합계', month: (+kstToday().slice(5, 7)) + '월 점수 합계', year: kstToday().slice(0, 4) + '년 점수 합계' }[mode];
+  screen(el('h1', {}, '순위표'), tabs, el('p', { class: 'sub' }, hint), el('div', { class: 'panel' }, box), eventBox(), el('button', { class: 'btn ghost', onclick: home }, '처음으로'));
   if (!S.fb) { box.replaceChildren(el('p', { class: 'note' }, '순위표는 곧 열려요. 지금은 내 기록만 이 기기에 저장돼요.')); return; }
   try {
     let rows;
     if (mode === 'day') rows = (await topOfDay(date, 50)).map(r => ({ id: r.id, nick: r.nick, score: r.score }));
     else {
-      const ws = weekStart(date), days = [];
-      for (let k = 0; k < 7; k++) { const d = addDays(ws, k); if (d <= kstToday()) days.push(d); }
-      const sums = {};
-      for (const d of days) for (const r of await topOfDay(d, 300)) { const s = sums[r.id] || (sums[r.id] = { id: r.id, nick: r.nick, score: 0, days: 0 }); s.score += r.score; s.days++; s.nick = r.nick; }
-      rows = Object.values(sums).sort((a, b) => b.score - a.score).slice(0, 50);
+      const pid = periodsOf(kstToday())[mode];
+      const snap = await S.fb.collection('totals').doc(pid).collection('scores').orderBy('score', 'desc').limit(50).get();
+      rows = snap.docs.map(x => { const v = x.data(); return { id: x.id, nick: v.nick, score: v.score, days: Object.keys(v.d || {}).length, at: v.at ? v.at.toMillis() : 0 }; });
+      rows.sort((a, b) => b.score - a.score || a.at - b.at);
     }
     if (!rows.length) { box.replaceChildren(el('p', { class: 'note' }, '아직 기록이 없어요. 첫 번째가 되어 보세요.')); return; }
-    box.replaceChildren(...rows.map((r, k) => { const nm = el('span', { class: 'nm' }); nm.append(document.createTextNode(r.nick || '참가자'), ' ', el('span', { class: 'tag' }, tagOf(r.id)), r.id === S.uid ? ' (나)' : ''); return el('div', { class: 'rank-row' + (r.id === S.uid ? ' me' : '') }, el('span', { class: 'n' }, k + 1), nm, el('span', { class: 'pts' }, r.score + '점')); }));
-  } catch (e) { box.replaceChildren(el('p', { class: 'note' }, '순위를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); }
+    box.replaceChildren(...rows.map((r, k) => { const nm = el('span', { class: 'nm' }); nm.append(document.createTextNode(r.nick || '참가자'), ' ', el('span', { class: 'tag' }, tagOf(r.id)), r.id === S.uid ? ' (나)' : ''); return el('div', { class: 'rank-row' + (r.id === S.uid ? ' me' : '') }, el('span', { class: 'n' }, k + 1), nm, el('span', { class: 'pts' }, r.score + '점' + (r.days ? ' · ' + r.days + '일' : ''))); }));
+  } catch (e) { console.warn(e); box.replaceChildren(el('p', { class: 'note' }, '순위를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); }
 }
 
 boot();
