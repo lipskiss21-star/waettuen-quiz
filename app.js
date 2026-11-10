@@ -224,7 +224,7 @@ async function topOfDay(d, n) {
 async function board(date, mode) {
   const box = el('div', { class: 'list' }, el('p', { class: 'note' }, '불러오는 중…'));
   const tab = (m, label) => el('button', { role: 'tab', 'aria-selected': String(mode === m), onclick: () => board(date, m) }, label);
-  const tabs = el('div', { class: 'tabs', role: 'tablist' }, tab('day', md(date)), tab('week', '이번 주'), tab('month', '이번 달'), tab('year', '올해'));
+  const tabs = el('div', { class: 'tabs', role: 'tablist' }, tab('day', md(date)), tab('week', '이번 주'), tab('month', '이번 달'));
   const hint = { day: md(date) + ' 점수', week: '이번 주(월~일) 점수 합계', month: (+kstToday().slice(5, 7)) + '월 점수 합계', year: kstToday().slice(0, 4) + '년 점수 합계' }[mode];
   screen(el('h1', {}, '순위표'), tabs, el('p', { class: 'sub' }, hint), el('div', { class: 'panel' }, box), eventBox(), el('button', { class: 'btn ghost', onclick: home }, '처음으로'));
   if (!S.fb) { box.replaceChildren(el('p', { class: 'note' }, '순위표는 곧 열려요. 지금은 내 기록만 이 기기에 저장돼요.')); return; }
