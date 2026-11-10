@@ -94,7 +94,7 @@ def frame(t):
         # keyword card
         def kw(dd):
             dd.rounded_rectangle((80,300,1000,700),radius=40,fill=PANEL)
-            ctext(dd,370,DATE+' · 오늘 자주 볼 단어',F(40,True),MUTED)
+            ctext(dd,370,DATE+' · 오늘 자주 볼 키워드',F(40,True),MUTED)
             ctext(dd,505,KW,F(150),YEL)
             ctext(dd,630,VOL,F(42,True),MUTED)
         comp(scaled(kw, pop(t,0.15,0.45)))
