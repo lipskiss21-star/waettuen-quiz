@@ -237,6 +237,9 @@ async function board(date, mode) {
       rows = snap.docs.map(x => { const v = x.data(); return { id: x.id, nick: v.nick, score: v.score, days: Object.keys(v.d || {}).length, at: v.at ? v.at.toMillis() : 0 }; });
       rows.sort((a, b) => b.score - a.score || a.at - b.at);
     }
+    // 같은 닉네임은 점수가 가장 높은 기록 하나만 보여 줘요 (다른 기기에서 풀어 번호가 둘인 경우)
+    const seen = new Set();
+    rows = rows.filter(r => { const k = (r.nick || '').trim(); if (!k) return true; if (seen.has(k)) return false; seen.add(k); return true; });
     if (!rows.length) { box.replaceChildren(el('p', { class: 'note' }, '아직 기록이 없어요. 첫 번째가 되어 보세요.')); return; }
     box.replaceChildren(...rows.map((r, k) => { const nm = el('span', { class: 'nm' }); nm.append(document.createTextNode(r.nick || '참가자'), ' ', el('span', { class: 'tag' }, tagOf(r.id)), r.id === S.uid ? ' (나)' : ''); return el('div', { class: 'rank-row' + (r.id === S.uid ? ' me' : '') }, el('span', { class: 'n' }, k + 1), nm, el('span', { class: 'pts' }, r.score + '점' + (r.days ? ' · ' + r.days + '일' : ''))); }));
   } catch (e) { console.warn(e); box.replaceChildren(el('p', { class: 'note' }, '순위를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')); }
