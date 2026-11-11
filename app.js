@@ -53,8 +53,26 @@ async function boot() {
   } catch (e) { msg('퀴즈를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 열어 주세요.'); return; }
   if (!S.dates.length) { msg('아직 등록된 퀴즈가 없어요. 매일 아침 새 문제가 올라와요.'); return; }
   await Promise.race([fbP, new Promise(r => setTimeout(r, 6000))]);
-  fbP.then(migrateTotals);
+  fbP.then(() => { migrateTotals(); logVisit(); });
   if (!S.nick) nickScreen(home); else home();
+}
+
+// 방문자 집계: 기기마다 하루 한 번 '오늘 열었음'과 들어온 곳만 기록해요
+function visitSrc() {
+  const ua = navigator.userAgent || '', ref = document.referrer || '';
+  if (/^android-app:\/\/com\.waettuen\.quiz/.test(ref)) return 'app';
+  if (/KAKAOTALK/i.test(ua)) return 'kakao';
+  if (/youtube\.com|youtu\.be/i.test(ref)) return 'youtube';
+  return ref && !ref.startsWith(location.origin) ? 'web' : 'direct';
+}
+function logVisit() {
+  if (!S.fb || !S.uid) return;
+  const d = kstToday();
+  if (store.get('visit', '') === d) return;
+  const done = () => store.set('visit', d);
+  S.fb.collection('visits').doc(d).collection('v').doc(S.uid)
+    .set({ at: firebase.firestore.FieldValue.serverTimestamp(), src: visitSrc() })
+    .then(done, done);
 }
 
 function eventBox() {

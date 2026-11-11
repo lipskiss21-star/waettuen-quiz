@@ -76,6 +76,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // 방문 기록: 누구나 읽기(익명 번호·들어온 곳만), 본인만 오늘 날짜로 한 번 쓰기, 수정·삭제 불가
+    match /visits/{date}/v/{uid} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && isDate(date)
+        && isKstToday(date)
+        && request.resource.data.keys().hasOnly(['at', 'src'])
+        && request.resource.data.at == request.time
+        && request.resource.data.src in ['youtube', 'kakao', 'app', 'web', 'direct'];
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
