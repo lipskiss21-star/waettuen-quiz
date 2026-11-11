@@ -57,10 +57,11 @@ def scaled(layer_fn, scale, alpha=1.0):
     if alpha<1: L.putalpha(L.getchannel('A').point(lambda a:int(a*alpha)))
     return L
 
+CX = 510   # 오른쪽 유튜브 버튼(좋아요·댓글)을 피해 가운데를 살짝 왼쪽으로
 def badge(d, y=170):
     f=F(64); s='왜뜬겨?'; tw=d.textlength(s,font=f)
-    d.rounded_rectangle((W/2-tw/2-48,y-56,W/2+tw/2+48,y+56),radius=56,fill=YEL)
-    ctext(d,y-4,s,f,INK)
+    d.rounded_rectangle((CX-tw/2-48,y-56,CX+tw/2+48,y+56),radius=56,fill=YEL)
+    ctext(d,y-4,s,f,INK,x=CX)
 
 def cup(d, cx, cy, s=1.0, col=INK):
     w,h=int(120*s),int(110*s)
@@ -71,7 +72,7 @@ def cup(d, cx, cy, s=1.0, col=INK):
 def ribbon(d, y=236):
     # 첫 화면부터 보이는 '주간 1위 커피 쿠폰' 띠 (event가 true일 때)
     f=F(40); s='주간 1위 커피 쿠폰 선물'; tw=d.textlength(s,font=f)
-    total=88+tw; x0=W/2-total/2-40; x1=W/2+total/2+40
+    total=88+tw; x0=CX-total/2-40; x1=CX+total/2+40
     d.rounded_rectangle((x0,y-38,x1,y+38),radius=38,fill=(52,44,10),outline=YEL,width=4)
     cup(d,int(x0+40+24),y+2,0.42,YEL)
     d.text((x0+40+88,y-3),s,font=f,fill=YEL,anchor='lm')
@@ -81,7 +82,7 @@ def frame(t):
     if EVENT and t<T_OUT:
         badge(d,118); ribbon(d)
     else:
-        badge(d)
+        badge(d,150)
     def comp(layer):
         if layer is not None: im.alpha_composite(layer)
     if T_TIMER1<=t<T_REV:
@@ -93,48 +94,48 @@ def frame(t):
         if t>=T_REV: t = t-(T_REV-T_TIMER1)   # 정답 공개 화면은 퀴즈 화면을 이어서 그려요
         # keyword card
         def kw(dd):
-            dd.rounded_rectangle((80,300,1000,700),radius=40,fill=PANEL)
-            ctext(dd,370,DATE+' · 오늘 자주 볼 키워드',F(40,True),MUTED)
-            ctext(dd,505,KW,F(150),YEL)
-            ctext(dd,630,VOL,F(42,True),MUTED)
+            dd.rounded_rectangle((70,295,950,595),radius=40,fill=PANEL)
+            ctext(dd,345,DATE+' · 오늘 자주 볼 키워드',F(38,True),MUTED,x=CX)
+            ctext(dd,445,KW,F(130),YEL,x=CX)
+            ctext(dd,548,VOL,F(38,True),MUTED,x=CX)
         comp(scaled(kw, pop(t,0.15,0.45)))
         # question
         if t>=2.3:
-            def qq(dd): ctext(dd,800,'왜 떴게?' if IS_PERSON else '이거 왜 떴게?',F(96),FG)
+            def qq(dd): ctext(dd,668,'왜 떴게?' if IS_PERSON else '이거 왜 떴게?',F(88),FG,x=CX)
             comp(scaled(qq, pop(t,2.3,0.4)))
         # timer bar
         if t>=T_TIMER1:
-            def vd(dd): ctext(dd,940,'정답은 '+'ABCD'[ANS]+'!',F(84),GREEN)
-            comp(scaled(vd, pop(t,T_TIMER1,0.35)))
+            def vd(dd): ctext(dd,778,'정답은 '+'ABCD'[ANS]+'!',F(76),GREEN,x=CX)
+            comp(scaled(vd, 0.85+0.15*ease((t-T_TIMER1)/0.35), ease((t-T_TIMER1)/0.25)))
         elif t>=T_TIMER0-0.3:
             left=max(0,min(1,1-(t-T_TIMER0)/(T_TIMER1-T_TIMER0)))
-            d.rounded_rectangle((80,900,1000,922),radius=11,fill=PANEL2)
+            d.rounded_rectangle((70,742,950,762),radius=10,fill=PANEL2)
             col=RED if t>=T_URG else YEL
-            if left>0: d.rounded_rectangle((80,900,80+920*left,922),radius=11,fill=col)
+            if left>0: d.rounded_rectangle((70,742,70+880*left,762),radius=10,fill=col)
             sec=math.ceil((T_TIMER1-t)) if t<T_TIMER1 else 0
-            if t>=T_TIMER0: ctext(d,970,f'{min(8,sec)}초',F(48),col)
+            if t>=T_TIMER0: ctext(d,800,f'{min(8,sec)}초',F(42),col,x=CX)
         # choices
-        y=1040
+        Y0=845; y=Y0
         for k,c in enumerate(CHOICES):
             t0=4.4+0.55*k
-            f=F(44,True); lines=wrap(d,c,f,760); h=60+56*len(lines)
+            f=F(40,True); lines=wrap(d,c,f,680); h=38+50*len(lines)
             yy=y
             collapse = ease((t-T_TIMER1-0.5)/0.4) if t>=T_TIMER1+0.5 else 0.0
-            if k==ANS and collapse>0: yy = int(y + (1040 - y)*collapse)
-            if k!=ANS and t>=T_TIMER1+0.5: y+=h+22; continue
+            if k==ANS and collapse>0: yy = int(y + (Y0 - y)*collapse)
+            if k!=ANS and t>=T_TIMER1+0.5: y+=h+16; continue
             if t>=t0:
                 a=ease((t-t0)/0.3); dx=int((1-a)*120)
                 L=Image.new('RGBA',(W,H),(0,0,0,0)); dd=ImageDraw.Draw(L)
                 rev = t>=T_TIMER1; right = k==ANS
                 fillc = (24,62,44) if (rev and right) else PANEL2
-                dd.rounded_rectangle((80+dx,yy,1000+dx,yy+h),radius=26,fill=fillc,outline=GREEN if (rev and right) else None,width=6)
+                dd.rounded_rectangle((60+dx,yy,940+dx,yy+h),radius=24,fill=fillc,outline=GREEN if (rev and right) else None,width=6)
                 tc = FG if (not rev or right) else (95,95,105)
-                dd.text((130+dx,yy+h/2),'ABCD'[k],font=F(52),fill=(GREEN if right else (95,95,105)) if rev else YEL,anchor='lm')
-                for j,ln in enumerate(lines): dd.text((200+dx,yy+30+28+56*j),ln,font=f,fill=tc,anchor='lm')
+                dd.text((100+dx,yy+h/2),'ABCD'[k],font=F(46),fill=(GREEN if right else (95,95,105)) if rev else YEL,anchor='lm')
+                for j,ln in enumerate(lines): dd.text((160+dx,yy+19+25+50*j),ln,font=f,fill=tc,anchor='lm')
                 if a<1: L.putalpha(L.getchannel('A').point(lambda v,a=a:int(v*a)))
                 im.alpha_composite(L)
             if k==ANS: ansbottom = yy+h
-            y+=h+22
+            y+=h+16
         if EXPLAIN and t>=T_TIMER1+1.0:
             a=ease((t-T_TIMER1-1.0)/0.35)
             L=Image.new('RGBA',(W,H),(0,0,0,0)); dd=ImageDraw.Draw(L)
@@ -147,28 +148,28 @@ def frame(t):
             im.alpha_composite(L)
         if 11.0<=t<T_TIMER1:
             pulse=0.5+0.5*math.sin((t-11)*2*math.pi*2)
-            ctext(d,1830,'정답을 골라 보세요!',F(52),tuple(int(FG[i]*(0.6+0.4*pulse)) for i in range(3)))
+            ctext(d,1432,'정답을 골라 보세요!',F(42),tuple(int(FG[i]*(0.6+0.4*pulse)) for i in range(3)))
     else:
         def out(dd):
-            ctext(dd,360,'오늘의 이슈 키워드,',F(80),FG)
-            ctext(dd,470,'왜 떴는지 궁금하다면?',F(80),FG)
-            ctext(dd,610,'왜뜬겨? 퀴즈 풀어 보세요!',F(74),YEL)
-            dd.rounded_rectangle((80,720,1000,1260),radius=36,fill=PANEL)
-            ctext(dd,795,'나머지 4문제 키워드는?',F(50),FG)
+            ctext(dd,310,'오늘의 이슈 키워드,',F(70),FG,x=CX)
+            ctext(dd,400,'왜 떴는지 궁금하다면?',F(70),FG,x=CX)
+            ctext(dd,505,'왜뜬겨? 퀴즈 풀어 보세요!',F(66),YEL,x=CX)
+            dd.rounded_rectangle((70,575,950,995),radius=36,fill=PANEL)
+            ctext(dd,635,'나머지 4문제 키워드는?',F(46),FG,x=CX)
             for k,w in enumerate(SHOWN):
-                ctext(dd,895+k*90,w,F(56,True),YEL)
-            ctext(dd,895+3*90,'???  (퀴즈에서 공개!)',F(50,True),MUTED)
+                ctext(dd,720+k*75,w,F(50,True),YEL,x=CX)
+            ctext(dd,720+3*75,'???  (퀴즈에서 공개!)',F(44,True),MUTED,x=CX)
             if EVENT:
-                dd.rounded_rectangle((80,1310,1000,1540),radius=32,fill=(52,44,10),outline=YEL,width=5)
-                ctext(dd,1375,'퀴즈 풀고 주간 성적 1위에게',F(50,True),FG)
-                ctext(dd,1465,'커피 쿠폰 선물!',F(84),YEL)
-                ctext(dd,1588,'참여 방법·규칙은 퀴즈 사이트에서',F(36,True),MUTED)
+                dd.rounded_rectangle((70,1025,950,1225),radius=32,fill=(52,44,10),outline=YEL,width=5)
+                ctext(dd,1080,'퀴즈 풀고 주간 성적 1위에게',F(46,True),FG,x=CX)
+                ctext(dd,1162,'커피 쿠폰 선물!',F(76),YEL,x=CX)
+                ctext(dd,1262,'참여 방법·규칙은 퀴즈 사이트에서',F(34,True),MUTED,x=CX)
             else:
-                ctext(dd,1390,'15초 안에 맞히고',F(56,True),FG)
-                ctext(dd,1470,'순위표 1등 도전!',F(56,True),FG)
-            dd.rounded_rectangle((120,1650,960,1780),radius=65,fill=YEL)
-            ctext(dd,1713,'아래 영상 버튼 누르고 → 퀴즈 풀기',F(52),INK)
-        comp(scaled(out, pop(t,T_OUT,0.45)))
+                ctext(dd,1090,'15초 안에 맞히고',F(52,True),FG,x=CX)
+                ctext(dd,1165,'순위표 1등 도전!',F(52,True),FG,x=CX)
+            dd.rounded_rectangle((90,1305,930,1425),radius=60,fill=YEL)
+            ctext(dd,1363,'아래 영상 버튼 누르고 → 퀴즈 풀기',F(48),INK,x=CX)
+        comp(scaled(out, 0.9+0.1*ease((t-T_OUT)/0.45), ease((t-T_OUT)/0.3)))
     return im.convert('RGB')
 
 
