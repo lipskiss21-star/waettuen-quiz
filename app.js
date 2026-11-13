@@ -230,9 +230,7 @@ function result(quiz, play, note) {
     el('p', { class: 'note' }, '5문제 중 ' + play.correct + '문제 정답'),
     note ? el('p', { class: 'note' }, note) : null,
     el('div', { class: 'row' }, copyBtn, el('button', { class: 'btn ghost', onclick: home }, '처음으로')),
-    el('button', { class: 'btn', onclick: () => board(quiz.date, 'day') }, '순위 보기'),
-    CFG.kakao ? el('a', { class: 'btn kakao', href: CFG.kakao, target: '_blank', rel: 'noopener' }, '💬 결과 복사해서 단톡방에 자랑하기') : null,
-    CFG.kakao ? el('p', { class: 'note' }, '매일 아침 새 퀴즈 알림도 단톡방에서 받아요') : null
+    el('button', { class: 'btn', onclick: () => board(quiz.date, 'day') }, '순위 보기')
   );
 }
 
