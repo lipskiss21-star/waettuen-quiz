@@ -14,5 +14,7 @@ window.WAE_CONFIG = {
     title: '주간 1등 선물 이벤트',
     prize: '커피 기프티콘',
     youtube: 'https://www.youtube.com/@%EC%99%9C%EB%9C%AC%EA%B2%A8%ED%80%B4%EC%A6%88/shorts'
-  }
+  },
+  // 카카오톡 오픈채팅방 (결과 화면 버튼)
+  kakao: 'https://open.kakao.com/o/sXjevTWi'
 };
